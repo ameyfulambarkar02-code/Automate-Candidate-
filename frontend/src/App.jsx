@@ -32,8 +32,10 @@ function App() {
   const [user, setUser] = useState(null);
   const [checking, setChecking] = useState(true);
   const location = useLocation();
+  const isDemo = location.pathname === "/demo" || location.pathname.startsWith("/demo/");
 
   useEffect(() => {
+    if (location.pathname === "/demo" || location.pathname.startsWith("/demo/")) return;
     api.get("/auth/me")
       .then(({ data }) => {
         setCsrfToken(data.csrf_token);
@@ -43,8 +45,9 @@ function App() {
       .finally(() => setChecking(false));
   }, [location.pathname]);
 
+  if (isDemo) return <DemoWorkspace />;
   if (checking) return <CenteredState text="Checking your session…" />;
-  if (!user) return <Routes><Route path="*" element={<LoginPage />} /></Routes>;
+  if (!user) return <Routes><Route path="/demo/*" element={<DemoWorkspace />} /><Route path="*" element={<LoginPage />} /></Routes>;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -117,10 +120,238 @@ function LoginPage() {
         <button onClick={signIn} disabled={busy} className="mt-7 flex w-full items-center justify-center gap-3 rounded-lg bg-slate-900 px-4 py-3 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60">
           {busy ? <LoaderCircle className="animate-spin" size={18} /> : <GoogleMark />} Sign in with Google
         </button>
+        <Link to="/demo" className="secondary-button mt-3 w-full justify-center">Explore read-only demo</Link>
         <p className="mt-5 text-xs leading-5 text-slate-500">Your Google tokens stay on the backend. Form and Drive access is limited to the Google account you authorize.</p>
       </div>
     </div>
   );
+}
+
+const demoCandidates = [
+  {
+    id: "demo-001",
+    registration_id: "DEMO-2026-001",
+    candidate_name: "Aarav Patil",
+    mobile_number: "+1 (555) 010-0101",
+    submission_timestamp: "2026-10-22T09:30:00Z",
+    processing_status: "completed",
+    document_drive_id: "demo-document",
+    original_data: {
+      "Candidate name": "Aarav Patil",
+      "Date of birth": "1998-04-12",
+      "Birth place": "Pune",
+      Education: "Bachelor of Commerce",
+    },
+    translated_data: {
+      candidate_name: "आरव पाटील",
+      birth_place: "पुणे",
+      education: "वाणिज्य शाखेतील पदवी",
+    },
+  },
+  {
+    id: "demo-002",
+    registration_id: "DEMO-2026-002",
+    candidate_name: "Mira Deshmukh",
+    mobile_number: "+1 (555) 010-0102",
+    submission_timestamp: "2026-10-23T14:15:00Z",
+    processing_status: "pending",
+    document_drive_id: null,
+    original_data: {
+      "Candidate name": "Mira Deshmukh",
+      "Date of birth": "2000-08-03",
+      "Birth place": "Nashik",
+      Education: "Bachelor of Arts",
+    },
+    translated_data: {
+      candidate_name: "मीरा देशमुख",
+      birth_place: "नाशिक",
+      education: "कला शाखेतील पदवी",
+    },
+  },
+  {
+    id: "demo-003",
+    registration_id: "DEMO-2026-003",
+    candidate_name: "Neel Kulkarni",
+    mobile_number: "+1 (555) 010-0103",
+    submission_timestamp: "2026-10-24T11:05:00Z",
+    processing_status: "failed",
+    document_drive_id: null,
+    original_data: {
+      "Candidate name": "Neel Kulkarni",
+      "Date of birth": "1997-12-19",
+      "Birth place": "Kolhapur",
+      Education: "Bachelor of Engineering",
+    },
+    translated_data: {
+      candidate_name: "नील कुलकर्णी",
+      birth_place: "कोल्हापूर",
+      education: "अभियांत्रिकी शाखेतील पदवी",
+    },
+  },
+];
+
+const demoNavigation = [
+  { to: "/demo", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/demo/forms/connect", label: "Connect a form", icon: ClipboardList },
+  { to: "/demo/candidates", label: "Candidates", icon: Users },
+  { to: "/demo/settings", label: "Settings", icon: Settings },
+];
+
+function DemoWorkspace() {
+  const location = useLocation();
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900">
+      <aside className="fixed inset-y-0 left-0 z-20 hidden w-64 border-r border-slate-200 bg-white lg:block">
+        <div className="flex h-20 items-center gap-3 border-b border-slate-100 px-6">
+          <div className="rounded-xl bg-indigo-600 p-2 text-white"><FileText size={20} /></div>
+          <div><p className="font-bold leading-5">Candidate</p><p className="text-xs text-slate-500">Marathi automation</p></div>
+        </div>
+        <nav className="space-y-1 px-3 py-6">
+          {demoNavigation.map(({ to, label, icon: Icon }) => (
+            <Link key={to} to={to} className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium ${location.pathname === to || (to !== "/demo" && location.pathname.startsWith(to)) ? "bg-indigo-50 text-indigo-700" : "text-slate-600 hover:bg-slate-50"}`}>
+              <Icon size={18} />{label}
+            </Link>
+          ))}
+        </nav>
+        <div className="absolute inset-x-4 bottom-4 rounded-xl bg-slate-50 p-4">
+          <div className="flex items-center gap-3">
+            <div className="rounded-full bg-white p-2"><UserRound size={18} /></div>
+            <div className="min-w-0"><p className="truncate text-sm font-medium">Demo workspace</p><p className="truncate text-xs text-slate-500">Sample data only</p></div>
+          </div>
+        </div>
+      </aside>
+      <div className="lg:pl-64">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-between border-b border-slate-200 bg-white/95 px-5 backdrop-blur sm:px-8">
+          <div className="flex items-center gap-2 text-sm font-medium text-indigo-700"><ShieldCheck size={17} /> Read-only demo</div>
+          <Link to="/" className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100">Exit demo</Link>
+        </header>
+        <main className="mx-auto max-w-7xl p-5 sm:p-8">
+          <div className="mb-6 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
+            Demo mode uses fictional sample data. Changes, Google connections, and document actions are disabled.
+          </div>
+          <Routes>
+            <Route path="/demo" element={<DemoDashboard />} />
+            <Route path="/demo/candidates" element={<DemoCandidates />} />
+            <Route path="/demo/candidates/:candidateId" element={<DemoCandidateDetail />} />
+            <Route path="/demo/forms/connect" element={<DemoConnectForm />} />
+            <Route path="/demo/forms/mapping" element={<DemoMapping />} />
+            <Route path="/demo/settings" element={<DemoSettings />} />
+            <Route path="*" element={<Navigate to="/demo" replace />} />
+          </Routes>
+        </main>
+      </div>
+      <nav className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-slate-200 bg-white py-2 lg:hidden">
+        {demoNavigation.map(({ to, label, icon: Icon }) => <Link key={to} to={to} className="flex flex-col items-center gap-1 text-[11px] text-slate-600"><Icon size={18} />{label.split(" ")[0]}</Link>)}
+      </nav>
+    </div>
+  );
+}
+
+function DemoDashboard() {
+  const completed = demoCandidates.filter((candidate) => candidate.processing_status === "completed").length;
+  const pending = demoCandidates.filter((candidate) => candidate.processing_status === "pending").length;
+  const failed = demoCandidates.filter((candidate) => candidate.processing_status === "failed").length;
+  const metrics = [
+    ["Total candidates", demoCandidates.length, Users],
+    ["Completed documents", completed, Check],
+    ["Pending", pending, Activity],
+    ["Failed", failed, CircleAlert],
+  ];
+  return <>
+    <PageHeading eyebrow="Overview" title="Dashboard" description="Monitor form processing and candidate documents." action={<Link className="primary-button" to="/demo/forms/connect">Connect Google Form <ChevronRight size={16} /></Link>} />
+    <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {metrics.map(([label, value, Icon]) => <div key={label} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><div className="flex items-center justify-between text-sm text-slate-500"><span>{label}</span><Icon size={18} className="text-indigo-600" /></div><p className="mt-4 text-3xl font-semibold">{value}</p></div>)}
+    </div>
+    <section className="mt-8 rounded-xl border border-slate-200 bg-white shadow-sm">
+      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4"><div><h2 className="font-semibold">Recent candidates</h2><p className="mt-1 text-sm text-slate-500">Fictional sample responses</p></div><Link to="/demo/candidates" className="text-sm font-medium text-indigo-700">View all</Link></div>
+      <CandidateTable candidates={demoCandidates} compact basePath="/demo" />
+    </section>
+  </>;
+}
+
+function DemoCandidates() {
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const candidates = demoCandidates.filter((candidate) =>
+    (!status || candidate.processing_status === status)
+    && (!search || `${candidate.candidate_name} ${candidate.mobile_number}`.toLowerCase().includes(search.toLowerCase())),
+  );
+  return <>
+    <PageHeading eyebrow="Registrations" title="Candidates" description="Sample candidate records for interface preview." />
+    <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+      <div className="relative flex-1"><Search className="absolute left-3 top-3 text-slate-400" size={17} /><input value={search} onChange={(event) => setSearch(event.target.value)} className="input pl-10" placeholder="Search sample candidates" /></div>
+      <select value={status} onChange={(event) => setStatus(event.target.value)} className="input sm:w-52"><option value="">All statuses</option><option value="completed">Completed</option><option value="pending">Pending</option><option value="processing">Processing</option><option value="failed">Failed</option></select>
+    </div>
+    <section className="mt-5 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"><CandidateTable candidates={candidates} basePath="/demo" /></section>
+  </>;
+}
+
+function DemoCandidateDetail() {
+  const { candidateId } = useParams();
+  const candidate = demoCandidates.find((item) => item.id === candidateId);
+  if (!candidate) return <Notice kind="error">Sample candidate not found.</Notice>;
+  return <>
+    <Link to="/demo/candidates" className="mb-5 inline-flex items-center gap-2 text-sm text-slate-500"><ArrowLeft size={16} /> Candidates</Link>
+    <PageHeading eyebrow={candidate.registration_id} title={candidate.candidate_name} description={candidate.mobile_number} />
+    <div className="mt-6 grid gap-5 xl:grid-cols-2">
+      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="font-semibold">Submitted information</h2>
+        <dl className="mt-4 divide-y divide-slate-100">{Object.entries(candidate.original_data).map(([key, value]) => <div key={key} className="grid grid-cols-2 gap-3 py-3 text-sm"><dt className="text-slate-500">{key}</dt><dd className="break-words font-medium">{value}</dd></div>)}</dl>
+        <div className="mt-5 flex flex-wrap gap-2"><button disabled className="secondary-button opacity-60">Preview photo</button><button disabled className="secondary-button opacity-60">Preview receipt</button></div>
+      </section>
+      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="font-semibold">Marathi translation preview</h2>
+        <dl className="mt-4 divide-y divide-slate-100">{Object.entries(candidate.translated_data).map(([key, value]) => <div key={key} className="grid grid-cols-2 gap-3 py-3 text-sm"><dt className="capitalize text-slate-500">{key.replaceAll("_", " ")}</dt><dd className="font-medium">{value}</dd></div>)}</dl>
+        <button disabled className="primary-button mt-5 opacity-60">Document actions unavailable in demo</button>
+      </section>
+    </div>
+  </>;
+}
+
+function DemoConnectForm() {
+  return <>
+    <PageHeading eyebrow="Setup preview" title="Connect Google Form" description="Preview the form connection setup. No Google account is connected in demo mode." />
+    <section className="mt-7 max-w-2xl rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <label className="label" htmlFor="demo-form-url">Google Form URL</label>
+      <input id="demo-form-url" disabled placeholder="https://docs.google.com/forms/d/…" className="input mt-2" />
+      <p className="mt-5 text-sm text-slate-500">Sign in with Google in the live workspace to connect a form. This demo does not send or save data.</p>
+      <button disabled className="primary-button mt-5 opacity-60">Connect form unavailable in demo</button>
+      <Link to="/demo/forms/mapping" className="secondary-button ml-3">Preview field mapping</Link>
+    </section>
+  </>;
+}
+
+function DemoMapping() {
+  const fields = [
+    ["Candidate name", "Full Name"],
+    ["Mobile number", "Phone Number"],
+    ["Date of birth", "Date of Birth"],
+    ["Birth place", "Birth Place"],
+    ["Education", "Education"],
+  ];
+  return <>
+    <PageHeading eyebrow="Form mapping preview" title="Sample Candidate Form" description="Example question-to-field mappings. Editing and saving are disabled." />
+    <section className="mt-6 max-w-3xl rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      {fields.map(([field, question]) => <div key={field} className="mb-5"><span className="label">{field}</span><div className="input mt-2 bg-slate-50">{question}</div></div>)}
+      <button disabled className="primary-button opacity-60">Save mapping unavailable in demo</button>
+    </section>
+  </>;
+}
+
+function DemoSettings() {
+  return <>
+    <PageHeading eyebrow="Account preview" title="Settings" description="Example account and form settings." />
+    <section className="mt-6 max-w-3xl rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="font-semibold">Google account</h2>
+      <p className="mt-2 text-sm text-slate-600">Not connected · Sign-in is skipped in demo mode</p>
+      <button disabled className="secondary-button mt-4 opacity-60">Account actions unavailable in demo</button>
+    </section>
+    <section className="mt-5 max-w-3xl rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h2 className="font-semibold">Connected forms</h2>
+      <p className="mt-3 text-sm text-slate-500">Sample Candidate Form · Demo only</p>
+      <Link className="font-medium text-indigo-700" to="/demo/forms/mapping">Preview mapping</Link>
+    </section>
+  </>;
 }
 
 function GoogleMark() {
@@ -374,9 +605,9 @@ function SettingsPage({ user }) {
   </>;
 }
 
-function CandidateTable({ candidates, compact = false }) {
+function CandidateTable({ candidates, compact = false, basePath = "" }) {
   if (!candidates?.length) return <div className="px-5 py-12 text-center"><Users className="mx-auto text-slate-300" size={28} /><p className="mt-3 text-sm font-medium">No candidates yet</p><p className="mt-1 text-sm text-slate-500">Connect a form and enable automatic processing to get started.</p></div>;
-  return <div className="overflow-x-auto"><table className="w-full min-w-[690px] text-left text-sm"><thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-3">Candidate</th><th className="px-5 py-3">Mobile</th><th className="px-5 py-3">Submitted</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Document</th></tr></thead><tbody className="divide-y divide-slate-100">{candidates.map((candidate) => <tr key={candidate.id} className="hover:bg-slate-50"><td className="px-5 py-3.5"><Link to={`/candidates/${candidate.id}`} className="font-semibold text-slate-800 hover:text-indigo-700">{candidate.candidate_name}</Link><p className="mt-0.5 text-xs text-slate-500">{candidate.registration_id}</p></td><td className="px-5 py-3.5 text-slate-600">{candidate.mobile_number || "—"}</td><td className="px-5 py-3.5 text-slate-600">{new Date(candidate.submission_timestamp).toLocaleDateString()}</td><td className="px-5 py-3.5"><StatusBadge status={candidate.processing_status} /></td><td className="px-5 py-3.5">{candidate.document_drive_id ? <Link className="inline-flex items-center gap-1 font-medium text-indigo-700" to={`/candidates/${candidate.id}`}>Open <ExternalLink size={14} /></Link> : <span className="text-slate-400">—</span>}</td></tr>)}</tbody></table></div>;
+  return <div className="overflow-x-auto"><table className="w-full min-w-[690px] text-left text-sm"><thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-3">Candidate</th><th className="px-5 py-3">Mobile</th><th className="px-5 py-3">Submitted</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Document</th></tr></thead><tbody className="divide-y divide-slate-100">{candidates.map((candidate) => <tr key={candidate.id} className="hover:bg-slate-50"><td className="px-5 py-3.5"><Link to={`${basePath}/candidates/${candidate.id}`} className="font-semibold text-slate-800 hover:text-indigo-700">{candidate.candidate_name}</Link><p className="mt-0.5 text-xs text-slate-500">{candidate.registration_id}</p></td><td className="px-5 py-3.5 text-slate-600">{candidate.mobile_number || "—"}</td><td className="px-5 py-3.5 text-slate-600">{new Date(candidate.submission_timestamp).toLocaleDateString()}</td><td className="px-5 py-3.5"><StatusBadge status={candidate.processing_status} /></td><td className="px-5 py-3.5">{candidate.document_drive_id ? <Link className="inline-flex items-center gap-1 font-medium text-indigo-700" to={`${basePath}/candidates/${candidate.id}`}>Open <ExternalLink size={14} /></Link> : <span className="text-slate-400">—</span>}</td></tr>)}</tbody></table></div>;
 }
 
 function StatusBadge({ status }) {

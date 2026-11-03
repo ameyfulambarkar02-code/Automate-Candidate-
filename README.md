@@ -108,6 +108,8 @@ The GitHub Actions workflow at `.github/workflows/poll-forms.yml` runs one polli
 
 Use the repository root as the Vercel project root. The root [vercel.json](./vercel.json) builds the Vite frontend and routes `/api/*` to the FastAPI function in [api/index.py](./api/index.py); both run on the same origin. The frontend defaults to `/api` in production.
 
+The `/demo` route is a public, read-only interface preview using fictional sample data. It skips API calls and does not expose or modify account data; real workspace features still require Google sign-in.
+
 SQLite is only for local development; Vercel functions have an ephemeral filesystem. Create a free PostgreSQL database with Neon and set its connection string as the Vercel `DATABASE_URL` environment variable.
 
 Configure these Vercel environment variables for Production: `APP_ENV=production`, `APP_ROLE=web`, `DATABASE_URL`, `FRONTEND_URL`, `FRONTEND_ORIGINS`, `BACKEND_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `SESSION_SECRET`, `ENCRYPTION_KEY`, and `COOKIE_SECURE=true`. Set `FRONTEND_URL` and `BACKEND_URL` to the Vercel origin, `FRONTEND_ORIGINS` to that exact origin, and `GOOGLE_REDIRECT_URI` to `https://<your-vercel-domain>/api/auth/google/callback`. Keep `TRANSLATION_MOCK=true` unless Google Cloud Translation credentials are configured. Enter secrets directly in Vercel; do not commit them.
