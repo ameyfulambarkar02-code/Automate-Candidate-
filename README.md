@@ -7,9 +7,9 @@ A cloud-hosted application for Google OAuth sign-in, existing Google Forms respo
 The original workspace had only a basic health endpoint and a React placeholder. It now includes:
 
 - FastAPI endpoints for Google sign-in, forms, mappings, candidates, translation review, document downloads, dashboard stats, retry, and regeneration.
-- SQLAlchemy user/form/candidate tables, SQLite locally and PostgreSQL on Render.
+- SQLAlchemy user/form/candidate tables, SQLite locally and PostgreSQL in production.
 - Encrypted OAuth refresh tokens, signed HTTP-only sessions, OAuth state validation, CSRF headers, per-user API filtering, and credential-free frontend configuration.
-- Google Forms/Drive clients, Google Cloud Translation service, a starter DOCX, image validation, and a database-backed worker that checks enabled forms at a configurable interval.
+- Google Forms/Drive clients, Google Cloud Translation service, a starter DOCX, image validation, and a database-backed worker that checks enabled forms.
 - A React dashboard with Google login, form connection/mapping, candidate search and status filtering, previews, translation editing, document download, and Drive-folder links.
 - Local test coverage for URL parsing, numeric-preserving translation, document output, health, and authentication boundaries.
 
@@ -94,7 +94,13 @@ The starter file is [backend/app/templates/candidate_template.docx](./backend/ap
 
 ### Render
 
-Use the included [render.yaml](./render.yaml) Blueprint to create the FastAPI web service, background worker, and PostgreSQL database. The worker must use a continuously running paid service/plan appropriate for production; free instances may sleep or stop and are not a guarantee of two-minute polling. Configure all `sync: false` secrets/settings in Render. Set `APP_ENV=production`, `COOKIE_SECURE=true`, and `TRANSLATION_MOCK=false`. The API creates its tables on startup; production schema changes should be applied as reviewed database migrations before rollout.
+The included [render.yaml](./render.yaml) Blueprint creates a free-tier FastAPI web service. Render's free web service can sleep when idle, so requests may take longer while it wakes. The free setup deliberately does not create a paid Render worker or database.
+
+Before deploying, create a PostgreSQL database with a free external provider such as Neon or Supabase, then set its connection string as `DATABASE_URL` in Render. SQLite is not suitable for this deployment because a free web service does not provide durable local storage. Configure the Blueprint's requested secrets in Render, including the Google OAuth client ID/secret, a Fernet `ENCRYPTION_KEY`, and `GOOGLE_REDIRECT_URI`. The redirect URI must be `https://<your-render-service>.onrender.com/api/auth/google/callback`; add that exact URI to the Google OAuth client. Set `FRONTEND_URL` and `FRONTEND_ORIGINS` to the deployed frontend origin. Keep `TRANSLATION_MOCK=true` for a no-billing setup; real Google Cloud Translation can incur charges.
+
+### Free scheduled form polling
+
+The GitHub Actions workflow at `.github/workflows/poll-forms.yml` runs one polling cycle every five minutes and can also be started manually from the repository's Actions tab. In the GitHub repository, add Actions repository secrets named `DATABASE_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `ENCRYPTION_KEY`. Scheduled GitHub Actions can be delayed, and Google API quotas still apply; this is best-effort polling, not a continuously running worker.
 
 ### Vercel
 
@@ -103,7 +109,7 @@ Deploy the `frontend` directory as the Vercel project root and set `VITE_API_BAS
 Google OAuth Authorized redirect URI must exactly match the deployed Render callback:
 `https://your-api.onrender.com/api/auth/google/callback`
 
-The application stores candidate records and Drive IDs in PostgreSQL. Temporary DOCX/photo bytes are held in memory or a temporary directory and removed after processing; the only durable files are in the user's Drive. A Render worker and paid Google API access can incur costs.
+The application stores candidate records and Drive IDs in the external PostgreSQL database. Temporary DOCX/photo bytes are held in memory or a temporary directory and removed after processing; the only durable files are in the user's Drive. The free-tier setup can sleep, scheduled polling is best-effort, and paid Google API access can incur costs.
 
 ## Important limitations
 

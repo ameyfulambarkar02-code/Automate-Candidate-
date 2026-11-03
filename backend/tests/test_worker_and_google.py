@@ -14,6 +14,15 @@ from app.services.google_forms_service import GoogleFormsService
 from app.api.candidates import _owned_candidate
 
 
+def test_one_shot_worker_runs_single_poll_cycle(monkeypatch):
+    from app.workers import scheduler
+
+    poll = Mock(return_value=2)
+    monkeypatch.setattr(scheduler, "process_pending_forms", poll)
+    scheduler.run_once()
+    poll.assert_called_once_with()
+
+
 def make_session() -> Session:
     engine = create_engine(
         "sqlite://",
