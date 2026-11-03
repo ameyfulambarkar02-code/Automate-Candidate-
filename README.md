@@ -98,13 +98,15 @@ The included [render.yaml](./render.yaml) Blueprint creates a free-tier FastAPI 
 
 Before deploying, create a PostgreSQL database with a free external provider such as Neon or Supabase, then set its connection string as `DATABASE_URL` in Render. SQLite is not suitable for this deployment because a free web service does not provide durable local storage. Configure the Blueprint's requested secrets in Render, including the Google OAuth client ID/secret, a Fernet `ENCRYPTION_KEY`, and `GOOGLE_REDIRECT_URI`. The redirect URI must be `https://<your-render-service>.onrender.com/api/auth/google/callback`; add that exact URI to the Google OAuth client. Set `FRONTEND_URL` and `FRONTEND_ORIGINS` to the deployed frontend origin. Keep `TRANSLATION_MOCK=true` for a no-billing setup; real Google Cloud Translation can incur charges.
 
+The API container binds to Render's `PORT` environment variable (falling back to port 8000 for local Docker runs).
+
 ### Free scheduled form polling
 
 The GitHub Actions workflow at `.github/workflows/poll-forms.yml` runs one polling cycle every five minutes and can also be started manually from the repository's Actions tab. In the GitHub repository, add Actions repository secrets named `DATABASE_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `ENCRYPTION_KEY`. Scheduled GitHub Actions can be delayed, and Google API quotas still apply; this is best-effort polling, not a continuously running worker.
 
 ### Vercel
 
-Deploy the `frontend` directory as the Vercel project root and set `VITE_API_BASE_URL` to the Render API origin plus `/api` (for example `https://your-api.onrender.com/api`). Set Render `FRONTEND_URL` to your Vercel URL and `FRONTEND_ORIGINS` to the exact allowed frontend origin(s). Production cookies require HTTPS; browser third-party cookie policies can affect split Vercel/Render domains. For a production deployment, use custom frontend/API domains under the same site if the browser blocks cross-site cookies.
+Set `VITE_API_BASE_URL` to the Render API origin plus `/api` (for example `https://your-api.onrender.com/api`). The Vercel project can use either the `frontend` directory as its root or the repository root; the corresponding `vercel.json` configures the Vite build and SPA route fallback. Set Render `FRONTEND_URL` to your Vercel URL and `FRONTEND_ORIGINS` to the exact allowed frontend origin(s). Production cookies require HTTPS; browser third-party cookie policies can affect split Vercel/Render domains. For a production deployment, use custom frontend/API domains under the same site if the browser blocks cross-site cookies.
 
 Google OAuth Authorized redirect URI must exactly match the deployed Render callback:
 `https://your-api.onrender.com/api/auth/google/callback`
