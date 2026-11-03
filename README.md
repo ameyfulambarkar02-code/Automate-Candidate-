@@ -92,9 +92,9 @@ The starter file is [backend/app/templates/candidate_template.docx](./backend/ap
 
 ## Cloud deployment
 
-### Render
+### Render (alternative)
 
-The included [render.yaml](./render.yaml) Blueprint creates a free-tier FastAPI web service. Render's free web service can sleep when idle, so requests may take longer while it wakes. The free setup deliberately does not create a paid Render worker or database.
+The included [render.yaml](./render.yaml) Blueprint is an alternative API deployment. The free setup deliberately does not create a paid Render worker or database.
 
 Before deploying, create a PostgreSQL database with a free external provider such as Neon or Supabase, then set its connection string as `DATABASE_URL` in Render. SQLite is not suitable for this deployment because a free web service does not provide durable local storage. Configure the Blueprint's requested secrets in Render, including the Google OAuth client ID/secret, a Fernet `ENCRYPTION_KEY`, and `GOOGLE_REDIRECT_URI`. The redirect URI must be `https://<your-render-service>.onrender.com/api/auth/google/callback`; add that exact URI to the Google OAuth client. Set `FRONTEND_URL` and `FRONTEND_ORIGINS` to the deployed frontend origin. Keep `TRANSLATION_MOCK=true` for a no-billing setup; real Google Cloud Translation can incur charges.
 
@@ -104,14 +104,17 @@ The API container binds to Render's `PORT` environment variable (falling back to
 
 The GitHub Actions workflow at `.github/workflows/poll-forms.yml` runs one polling cycle every five minutes and can also be started manually from the repository's Actions tab. In the GitHub repository, add Actions repository secrets named `DATABASE_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `ENCRYPTION_KEY`. Scheduled GitHub Actions can be delayed, and Google API quotas still apply; this is best-effort polling, not a continuously running worker.
 
-### Vercel
+### Vercel (frontend and API)
 
-Set `VITE_API_BASE_URL` to the Render API origin plus `/api` (for example `https://your-api.onrender.com/api`). The Vercel project can use either the `frontend` directory as its root or the repository root; the corresponding `vercel.json` configures the Vite build and SPA route fallback. Set Render `FRONTEND_URL` to your Vercel URL and `FRONTEND_ORIGINS` to the exact allowed frontend origin(s). Production cookies require HTTPS; browser third-party cookie policies can affect split Vercel/Render domains. For a production deployment, use custom frontend/API domains under the same site if the browser blocks cross-site cookies.
+Use the repository root as the Vercel project root. The root [vercel.json](./vercel.json) builds the Vite frontend and routes `/api/*` to the FastAPI function in [api/index.py](./api/index.py); both run on the same origin. The frontend defaults to `/api` in production.
 
-Google OAuth Authorized redirect URI must exactly match the deployed Render callback:
-`https://your-api.onrender.com/api/auth/google/callback`
+SQLite is only for local development; Vercel functions have an ephemeral filesystem. Create a free PostgreSQL database with Neon and set its connection string as the Vercel `DATABASE_URL` environment variable.
 
-The application stores candidate records and Drive IDs in the external PostgreSQL database. Temporary DOCX/photo bytes are held in memory or a temporary directory and removed after processing; the only durable files are in the user's Drive. The free-tier setup can sleep, scheduled polling is best-effort, and paid Google API access can incur costs.
+Configure these Vercel environment variables for Production: `APP_ENV=production`, `APP_ROLE=web`, `DATABASE_URL`, `FRONTEND_URL`, `FRONTEND_ORIGINS`, `BACKEND_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`, `SESSION_SECRET`, `ENCRYPTION_KEY`, and `COOKIE_SECURE=true`. Set `FRONTEND_URL` and `BACKEND_URL` to the Vercel origin, `FRONTEND_ORIGINS` to that exact origin, and `GOOGLE_REDIRECT_URI` to `https://<your-vercel-domain>/api/auth/google/callback`. Keep `TRANSLATION_MOCK=true` unless Google Cloud Translation credentials are configured. Enter secrets directly in Vercel; do not commit them.
+
+Add the exact deployed callback URI to the Google OAuth client's Authorized redirect URIs. The GitHub Actions workflow remains responsible for best-effort scheduled form polling; Vercel does not run the app's continuous worker.
+
+The application stores candidate records and Drive IDs in the external PostgreSQL database. Temporary DOCX/photo bytes are held in memory or a temporary directory and removed after processing; the only durable files are in the user's Drive. Free-tier function cold starts and scheduled polling can add delays, and paid Google API access can incur costs.
 
 ## Important limitations
 

@@ -22,7 +22,9 @@ class Settings(BaseSettings):
     translation_mock: bool = True
     polling_interval_seconds: int = 120
     max_upload_bytes: int = 15 * 1024 * 1024
-    template_path: str = "app/templates/candidate_template.docx"
+    template_path: str = str(
+        Path(__file__).resolve().parent / "templates" / "candidate_template.docx"
+    )
     cookie_secure: bool = False
 
     model_config = SettingsConfigDict(
